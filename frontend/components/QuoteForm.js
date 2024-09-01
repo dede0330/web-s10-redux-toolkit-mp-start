@@ -1,68 +1,55 @@
-import React, { useReducer } from 'react'
+import React from 'react'
+import { useSelector, useDispatch} from 'react-redux'
 
-const CHANGE_INPUT = 'CHANGE_INPUT'
-const RESET_FORM = 'RESET_FORM'
+import {
+  deleteQuote,
+  editQuoteAuthenticity,
+  setHighlightedQuote,
+  toggleVisibility,
+} from '../state/quotesSlice'
 
-const initialState = {
-  authorName: '',
-  quoteText: '',
-}
-
-const reducer = (state, action) => {
-  switch (action.type) {
-    case CHANGE_INPUT: {
-      const { name, value } = action.payload
-      return { ...state, [name]: value }
-    }
-    case RESET_FORM:
-      return { authorName: '', quoteText: '' }
-    default:
-      return state
-  }
-}
-
-export default function TodoForm() {
-  const [state, dispatch] = useReducer(reducer, initialState)
-
-  const onChange = ({ target: { name, value } }) => {
-    dispatch({ type: CHANGE_INPUT, payload: { name, value } })
-  }
-  const resetForm = () => {
-    dispatch({ type: RESET_FORM })
-  }
-  const onNewQuote = evt => {
-    evt.preventDefault()
-    // ✨ dispatch creation of a new quote here, using the values from the form
-    resetForm()
-  }
-
+export default function Quotes() {
+  const quotes = useSelector( st => st.quotesState.quotes)
+  const displayAllQuotes = useSelector(st => st.quotesState.displayAllQuotes) // ✨ `displayAllQuotes` must come from the Redux store
+  const highlightedQuote = useSelector(st => st.quotesState.highlightedQuote) // ✨ `highlightedQuote` must come from the Redux store
+  const dispatch = useDispatch()
   return (
-    <form id="quoteForm" onSubmit={onNewQuote}>
-      <h3>New Quote Form</h3>
-      <label><span>Author:</span>
-        <input
-          type='text'
-          name='authorName'
-          placeholder='type author name'
-          onChange={onChange}
-          value={state.authorName}
-        />
-      </label>
-      <label><span>Quote text:</span>
-        <textarea
-          type='text'
-          name='quoteText'
-          placeholder='type quote'
-          onChange={onChange}
-          value={state.quoteText}
-        />
-      </label>
-      <label><span>Create quote:</span>
-        <button
-          role='submit'
-          disabled={!state.authorName.trim() || !state.quoteText.trim()}
-        >DO IT!</button>
-      </label>
-    </form>
+    <div id="quotes">
+      <h3>Quotes</h3>
+      <div>
+        {
+          quotes
+            ?.filter(qt => {
+              return displayAllQuotes || !qt.apocryphal
+            })
+            .map(qt => (
+              <div
+                key={qt.id}
+                className={`quote${qt.apocryphal ? " fake" : ''}${highlightedQuote === qt.id ? " highlight" : ''}`}
+              >
+                <div>{qt.quoteText}</div>
+                <div>{qt.authorName}</div>
+                <div className="quote-buttons">
+                  <button onClick={() =>{
+                    const actionToDispatch = deleteQuote(qt.id)
+                    dispatch(actionToDispatch)
+                  }
+                  }>DELETE</button>
+                  <button onClick={() =>
+                    dispatch(setHighlightedQuote(qt.id))
+                  }>HIGHLIGHT</button>
+                  <button onClick={() => dispatch(editQuoteAuthenticity(qt.id)) }>FAKE</button>
+                </div>
+              </div>
+            ))
+        }
+        {
+          !quotes?.length && "No quotes here! Go write some."
+        }
+      </div>
+      {!!quotes?.length && <button onClick={() => dispatch(toggleVisibility())}>
+        {displayAllQuotes ? 'HIDE' : 'SHOW'} FAKE QUOTES
+      </button>}
+    </div>
   )
 }
